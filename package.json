@@ -1,0 +1,11 @@
+{
+  "name": "texto-en-espiral",
+  "version": "0.1.0",
+  "description": "Codifica texto en espirales para tatuajes y lo lee con la cámara",
+  "private": true,
+  "scripts": {
+    "test": "node tests/probar.js",
+    "serve": "npx --yes serve ."
+  },
+  "devDependencies": { "pngjs": "^7.0.0" }
+}

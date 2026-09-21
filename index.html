@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Texto en espiral</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EFEAF5; --panel:#F8F5FC; --paper:#FBF9FE; --ink:#4A2A8C; --text:#221832; --muted:#6B5F7E; --line:#D9D0E6;
+  --c0:#C2410C; --c1:#0F766E; --c2:#1D4ED8; --c3:#A21CAF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#17121F; --panel:#211A2C; --paper:#F3EFF8; --ink:#4A2A8C; --text:#EDE7F5; --muted:#A79CB8; --line:#3A304A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17121F; --panel:#211A2C; --paper:#F3EFF8; --ink:#4A2A8C; --text:#EDE7F5; --muted:#A79CB8; --line:#3A304A;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px 40px;display:grid;grid-template-columns:340px 1fr;gap:28px}
+header{grid-column:1/-1}
+h1{font-size:clamp(28px,4vw,44px);line-height:1.05;font-weight:800;margin:0 0 6px;letter-spacing:-.02em}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.controls{display:flex;flex-direction:column;gap:18px}
+label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.hint{font-size:13px;color:var(--muted);margin-top:4px}
+textarea{width:100%;min-height:96px;resize:vertical;font:inherit;padding:10px 12px;border-radius:10px;
+  border:1.5px solid var(--line);background:var(--panel);color:var(--text)}
+textarea:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+select{width:100%;font:inherit;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.row output{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.check{display:flex;gap:8px;align-items:center;font-weight:400;font-size:14px;cursor:pointer}
+button{font:inherit;font-weight:600;padding:10px 16px;border-radius:999px;border:none;background:var(--ink);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--text);border:1.5px solid var(--line)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.stage{min-width:0;display:flex;flex-direction:column;gap:14px}
+.paper{background:var(--paper);border-radius:4px;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(40,20,80,.45);
+  padding:20px;overflow:auto;min-height:420px;display:flex;align-items:center;justify-content:center;
+  background-image:linear-gradient(rgba(74,42,140,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(74,42,140,.05) 1px,transparent 1px);
+  background-size:24px 24px}
+.paper svg{width:100%;height:auto;max-height:70vh}
+.stats{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--muted)}
+.stats b{color:var(--text);font-variant-numeric:tabular-nums}
+.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.legend div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center;font-size:12px;color:var(--muted)}
+.legend svg{display:block;width:100%;height:34px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+details textarea{margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;min-height:140px}
+.warn{color:#B45309;font-size:13px}
+
+.tabs{grid-column:1/-1;display:flex;gap:6px;border-bottom:1.5px solid var(--line)}
+.tabs button{background:none;color:var(--muted);border-radius:0;padding:10px 4px;margin-right:18px;border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--ink)}
+.panel{display:contents}
+.panel[hidden]{display:none}
+.drop{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1.5px dashed var(--line);border-radius:12px;padding:18px}
+.drop input[type=file]{font:inherit;color:var(--text)}
+.results{display:flex;flex-direction:column;gap:12px}
+.res{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:8px;padding:12px 14px}
+.res.fail{border-left-color:#B45309}
+.res .txt{font-size:clamp(20px,3vw,28px);font-weight:800;line-height:1.2;word-break:break-word}
+.res .meta{font-size:13px;color:var(--muted);margin-top:4px}
+.view{background:var(--paper);border-radius:4px;overflow:auto;min-height:260px;display:flex;align-items:center;justify-content:center;padding:10px}
+.view canvas,.view svg{max-width:100%;height:auto;max-height:65vh}
+.busy{color:var(--muted);font-size:14px}
+#scanner{position:fixed;inset:0;z-index:50;background:#000;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#scanner[hidden]{display:none}
+#scanCv{display:block;width:100%;height:100%}
+.scanTop{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff;font-size:15px}
+.scanTop button{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(0,0,0,.3)}
+#scanBtn{align-self:flex-start}
+
+@media (max-width:820px){
+  .wrap{grid-template-columns:1fr}
+  .stage{order:-1}
+  .tabs{order:-1}
+  #pL .stage{order:0}
+  header{order:-2}
+}
+@media (prefers-reduced-motion:no-preference){ .paper svg path.data{transition:d .2s} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Texto en espiral</h1>
+    <p>Cada línea de texto se convierte en una espiral. Las ondulaciones del trazo son los datos: el punto marca el inicio y la lectura va desde dentro hacia fuera.</p>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tabC" aria-selected="true" aria-controls="pC">Crear</button>
+    <button role="tab" id="tabL" aria-selected="false" aria-controls="pL">Leer</button>
+  </nav>
+  <div class="panel" id="pC" role="tabpanel" aria-labelledby="tabC">
+
+  <section class="controls" aria-label="Opciones">
+    <div>
+      <label for="txt">Frase</label>
+      <textarea id="txt">Hola mundo
+Nos vemos en el ojo</textarea>
+      <div class="hint">Una espiral por línea. Máximo 127 caracteres por línea.</div>
+    </div>
+
+    <div>
+      <label for="mode">Alfabeto</label>
+      <select id="mode">
+        <option value="compact" selected>Compacto: letras, números y espacio (6 bits por carácter)</option>
+        <option value="utf8">Completo: cualquier texto (8 bits o más por carácter)</option>
+      </select>
+      <div class="hint">En modo compacto se quitan tildes y todo pasa a mayúsculas. Ocupa un 25 % menos.</div>
+    </div>
+
+    <div>
+      <label for="ecc">Corrección de errores</label>
+      <select id="ecc">
+        <option value="0.25">Baja: aguanta daños leves</option>
+        <option value="0.5" selected>Media: recomendada para piel</option>
+        <option value="1">Alta: el doble de largo, muy robusta</option>
+      </select>
+    </div>
+
+    <div>
+      <div class="row"><label for="amp">Altura de las ondas</label><output id="ampO"></output></div>
+      <input id="amp" type="range" min="2" max="12" step="0.5" value="5">
+    </div>
+    <div>
+      <div class="row"><label for="len">Longitud de cada símbolo</label><output id="lenO"></output></div>
+      <input id="len" type="range" min="8" max="30" step="1" value="14">
+    </div>
+    <div>
+      <div class="row"><label for="open">Apertura de la espiral</label><output id="openO"></output></div>
+      <input id="open" type="range" min="0.12" max="0.35" step="0.01" value="0.2">
+    </div>
+    <div>
+      <div class="row"><label for="sw">Grosor de línea</label><output id="swO"></output></div>
+      <input id="sw" type="range" min="0.6" max="3" step="0.1" value="1.4">
+    </div>
+
+    <label class="check"><input type="checkbox" id="guide"> Ver cómo está codificado</label>
+
+    <div class="btns">
+      <button id="copy">Copiar SVG</button>
+    </div>
+    <div id="copyMsg" class="hint" role="status"></div>
+  </section>
+
+  <section class="stage" aria-label="Plantilla">
+    <div class="paper" id="paper"></div>
+    <div class="stats" id="stats"></div>
+    <div>
+      <label>Los cuatro símbolos (2 bits cada uno)</label>
+      <div class="legend" id="legend"></div>
+    </div>
+    <details>
+      <summary>Código SVG de la plantilla</summary>
+      <textarea id="svgCode" readonly></textarea>
+    </details>
+  </section>
+  </div>
+
+  <div class="panel" id="pL" role="tabpanel" aria-labelledby="tabL" hidden>
+    <section class="controls" aria-label="Entrada">
+      <button id="scanBtn">Escanear con la cámara</button>
+      <div class="drop">
+        <label for="photo">Foto de la espiral</label>
+        <input id="photo" type="file" accept="image/*" capture="environment">
+        <div class="hint">Haz la foto de frente, con buena luz y la espiral entera en el encuadre. La imagen se procesa en tu navegador y no se envía a ningún sitio.</div>
+      </div>
+      <div>
+        <label for="svgIn">O pega el código SVG de una plantilla</label>
+        <textarea id="svgIn" placeholder="&lt;svg ...&gt;...&lt;/svg&gt;"></textarea>
+        <div class="btns" style="margin-top:10px"><button id="readSvg">Leer SVG</button></div>
+      </div>
+    </section>
+    <section class="stage" aria-label="Resultado">
+      <div class="results" id="results" aria-live="polite"><p class="hint">Sube una foto o pega un SVG para leer el mensaje.</p></div>
+      <div class="view" id="view" hidden></div>
+    </section>
+  </div>
+</div>
+
+<div id="scanner" hidden>
+  <canvas id="scanCv"></canvas>
+  <div class="scanTop"><span id="scanMsg">Apunta a una espiral</span><button id="scanClose" class="ghost">Cerrar</button></div>
+</div>
+
+<script>
+// ---------- Reed-Solomon GF(256) (solo codificador) ----------
+const EXP = new Array(512), LOG = new Array(256);
+(function(){ let x=1; for(let i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&256)x^=0x11d;} for(let i=255;i<512;i++)EXP[i]=EXP[i-255]; })();
+const gmul=(a,b)=> (a===0||b===0)?0:EXP[LOG[a]+LOG[b]];
+function rsGen(n){ let g=[1]; for(let i=0;i<n;i++){ const ng=new Array(g.length+1).fill(0);
+  for(let j=0;j<g.length;j++){ ng[j]^=g[j]; ng[j+1]^=gmul(g[j],EXP[i]); } g=ng; } return g; }
+function rsEncode(msg,n){ const g=rsGen(n), res=msg.concat(new Array(n).fill(0));
+  for(let i=0;i<msg.length;i++){ const c=res[i]; if(c) for(let j=1;j<g.length;j++) res[i+j]^=gmul(g[j],c); }
+  return msg.concat(res.slice(msg.length)); }
+
+// ---------- Codificación del texto ----------
+const COMPACT = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?'-:;()/&+=#@*\"%$<>_~[]^";
+function normalizeCompact(s){
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/Ñ/g,"N")
+          .split("").filter(c=>COMPACT.includes(c)).join("");
+}
+function lineToBytes(line, mode){
+  const bits=[];
+  const push=(v,n)=>{ for(let i=n-1;i>=0;i--) bits.push((v>>i)&1); };
+  if(mode==="compact"){
+    const s=normalizeCompact(line).slice(0,127);
+    push(1,1); push(s.length,7);
+    for(const c of s) push(COMPACT.indexOf(c),6);
+    var shown=s;
+  } else {
+    const b=Array.from(new TextEncoder().encode(line)).slice(0,127);
+    push(0,1); push(b.length,7);
+    b.forEach(v=>push(v,8));
+    var shown=line;
+  }
+  while(bits.length%8) bits.push(0);
+  const bytes=[]; for(let i=0;i<bits.length;i+=8){ let v=0; for(let k=0;k<8;k++) v=(v<<1)|bits[i+k]; bytes.push(v); }
+  return {bytes, shown};
+}
+function bytesToSymbols(bytes){ const s=[]; bytes.forEach(b=>{ for(let i=6;i>=0;i-=2) s.push((b>>i)&3); }); return s; }
+
+// ---------- Geometría ----------
+// Forma de cada símbolo en t∈[0,1]; positivo = hacia fuera de la espiral
+const SHAPES=[ t=> Math.sin(Math.PI*t), t=> -Math.sin(Math.PI*t), t=> Math.sin(2*Math.PI*t), t=> -Math.sin(2*Math.PI*t) ];
+const PREAMBLE=[0,1,0,1];
+
+function buildSpiral(symbols, P, dir){
+  const b=P.open, k=b/Math.sqrt(1+b*b);
+  const r0=Math.max(14, P.len*1.3);
+  const s0=r0/k, gap=P.len*0.35, step=P.len+gap, tail=P.len*5;
+  const pos=s=>{ const r=s*k, th=Math.log(r)/b; return [r*Math.cos(th), dir*r*Math.sin(th)]; };
+  const pts=[], guide=[], segs=[];
+  const total=symbols.length*step+tail;
+  let segIdx=-1, cur=null;
+  for(let d=0; d<=total; d+=0.8){
+    const s=s0+d, p=pos(s), q=pos(s+0.5);
+    let tx=q[0]-p[0], ty=q[1]-p[1]; const L=Math.hypot(tx,ty); tx/=L; ty/=L;
+    let nx=-ty, ny=tx; if(nx*p[0]+ny*p[1]<0){nx=-nx;ny=-ny;}
+    const i=Math.floor(d/step), within=d-i*step;
+    let off=0, sym=-1;
+    if(i<symbols.length && within<P.len){ sym=symbols[i]; off=SHAPES[sym](within/P.len)*P.amp; }
+    const pt=[p[0]+nx*off, p[1]+ny*off];
+    pts.push(pt); guide.push(p);
+    const key = sym>=0 ? i : -1;
+    if(key!==segIdx){ if(cur) segs.push(cur); cur={sym, idx:key, pts:[]}; segIdx=key; }
+    cur.pts.push(pt);
+  }
+  if(cur) segs.push(cur);
+  const start=pos(s0);
+  return {pts, guide, segs, start};
+}
+
+function bbox(pts){ let a=1e9,b=1e9,c=-1e9,d=-1e9; pts.forEach(([x,y])=>{a=Math.min(a,x);b=Math.min(b,y);c=Math.max(c,x);d=Math.max(d,y);}); return [a,b,c,d]; }
+const toPath=(pts,dx,dy)=> "M"+pts.map(p=>(p[0]+dx).toFixed(1)+" "+(p[1]+dy).toFixed(1)).join("L");
+
+// ---------- Render ----------
+const $=id=>document.getElementById(id);
+const COLORS=["var(--c0)","var(--c1)","var(--c2)","var(--c3)"];
+const HEX=["#C2410C","#0F766E","#1D4ED8","#A21CAF"];
+let lastSVG="";
+
+function render(){
+  const P={ amp:+$("amp").value, len:+$("len").value, open:+$("open").value, sw:+$("sw").value };
+  $("ampO").textContent=P.amp; $("lenO").textContent=P.len; $("openO").textContent=P.open.toFixed(2); $("swO").textContent=P.sw;
+  const mode=$("mode").value, ecc=+$("ecc").value, guideOn=$("guide").checked;
+  const lines=$("txt").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ $("paper").innerHTML='<p class="hint">Escribe una frase para generar la espiral.</p>'; $("stats").innerHTML=""; lastSVG=""; $("svgCode").value=""; return; }
+
+  const spirals=[]; let stats=[], warn="";
+  lines.forEach((line,li)=>{
+    const {bytes,shown}=lineToBytes(line,mode);
+    const nsym=Math.max(2, Math.round(bytes.length*ecc));
+    if(bytes.length+nsym>255){ warn="Una línea es demasiado larga para un solo bloque de corrección."; }
+    const coded=rsEncode(bytes,nsym);
+    const symbols=PREAMBLE.concat(bytesToSymbols(coded));
+    const sp=buildSpiral(symbols,P, li%2===0?1:-1);
+    sp.bb=bbox(sp.pts); sp.info={shown, data:bytes.length, parity:nsym, symbols:symbols.length};
+    spirals.push(sp);
+    if(mode==="compact" && shown!==line.toUpperCase()) warn = warn || "Algunos caracteres se han adaptado al alfabeto compacto.";
+  });
+
+  // Disposición en fila, con ligero desfase vertical alternado
+  const pad=P.amp+P.sw*3+6; let x=pad, maxH=0;
+  spirals.forEach(sp=>{ maxH=Math.max(maxH, sp.bb[3]-sp.bb[1]); });
+  spirals.forEach((sp,i)=>{
+    const w=sp.bb[2]-sp.bb[0], h=sp.bb[3]-sp.bb[1];
+    sp.dx=x-sp.bb[0]; sp.dy=pad+(maxH-h)*(i%2? .85:.15)-sp.bb[1]; x+=w+pad*1.2;
+  });
+  const W=x-pad*0.2+pad, H=maxH+pad*2;
+
+  // SVG limpio (plantilla) y SVG de vista
+  const ink="#1a1a1a";
+  let clean=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" fill="none" stroke="${ink}" stroke-width="${P.sw}" stroke-linecap="round" stroke-linejoin="round">`;
+  let view=`<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" role="img" aria-label="Plantilla en espiral de: ${lines.join(' / ').replace(/"/g,'')}" fill="none" stroke-linecap="round" stroke-linejoin="round">`;
+  spirals.forEach(sp=>{
+    const d=toPath(sp.pts,sp.dx,sp.dy), sx=sp.start[0]+sp.dx, sy=sp.start[1]+sp.dy, rr=(P.sw*2.4).toFixed(1);
+    clean+=`<path d="${d}"/><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${rr}" fill="${ink}" stroke="none"/>`;
+    if(guideOn){
+      view+=`<path d="${toPath(sp.guide,sp.dx,sp.dy)}" stroke="#8b7aa8" stroke-width="${(P.sw*0.6).toFixed(2)}" stroke-dasharray="3 4" opacity=".6"/>`;
+      sp.segs.forEach(sg=>{
+        const col = sg.sym<0 ? "var(--ink)" : (sg.idx<PREAMBLE.length ? "#888" : COLORS[sg.sym]);
+        view+=`<path d="${toPath(sg.pts,sp.dx,sp.dy)}" stroke="${col}" stroke-width="${P.sw*1.3}"/>`;
+      });
+    } else {
+      view+=`<path class="data" d="${d}" stroke="var(--ink)" stroke-width="${P.sw}"/>`;
+    }
+    view+=`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${rr}" fill="var(--ink)"/>`;
+  });
+  clean+="</svg>"; view+="</svg>";
+  $("paper").innerHTML=view; lastSVG=clean; $("svgCode").value=clean;
+
+  const tot=spirals.reduce((a,s)=>a+s.info.symbols,0);
+  $("stats").innerHTML = spirals.map((s,i)=>`<span>Espiral ${i+1}: <b>${s.info.data}</b> bytes de datos + <b>${s.info.parity}</b> de corrección = <b>${s.info.symbols}</b> ondas</span>`).join("")
+    + (spirals.length>1?`<span>Total: <b>${tot}</b> ondas</span>`:"")
+    + (warn?`<span class="warn">${warn}</span>`:"");
+}
+
+function legend(){
+  const names=["Bulto hacia fuera = 00","Bulto hacia dentro = 01","Onda fuera-dentro = 10","Onda dentro-fuera = 11"];
+  $("legend").innerHTML=SHAPES.map((f,i)=>{
+    let d="M4 17 L20 17"; for(let t=0;t<=1.0001;t+=0.05){ d+=` L${(20+t*60).toFixed(1)} ${(17-f(t)*11).toFixed(1)}`; } d+=" L96 17";
+    return `<div><svg viewBox="0 0 100 34" aria-hidden="true"><path d="${d}" fill="none" stroke="${HEX[i]}" stroke-width="2.2" stroke-linecap="round"/></svg>${names[i]}</div>`;
+  }).join("");
+}
+
+["txt","mode","ecc","amp","len","open","sw","guide"].forEach(id=>$(id).addEventListener("input",render));
+$("copy").addEventListener("click",async()=>{
+  if(!lastSVG) return;
+  try{ await navigator.clipboard.writeText(lastSVG); $("copyMsg").textContent="SVG copiado. Pégalo en un archivo .svg o en tu editor."; }
+  catch(e){ const det=document.querySelector("details"); det.open=true; $("svgCode").select(); $("copyMsg").textContent="No se pudo copiar automáticamente: el código está seleccionado abajo."; }
+});
+legend(); render();
+function decFactory(){
+// ================= Reed-Solomon GF(256), fcr=0, generador 2 =================
+const EXP = new Array(512), LOG = new Array(256);
+(function(){ let x=1; for(let i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&256)x^=0x11d;} for(let i=255;i<512;i++)EXP[i]=EXP[i-255]; })();
+const gmul=(a,b)=> (a===0||b===0)?0:EXP[LOG[a]+LOG[b]];
+const gdiv=(a,b)=>{ if(b===0) throw new Error("div0"); if(a===0) return 0; return EXP[(LOG[a]+255-LOG[b])%255]; };
+const gpow=(a,n)=> EXP[(((LOG[a]*n)%255)+255)%255];
+const ginv=a=> EXP[255-LOG[a]];
+const pScale=(p,x)=>p.map(c=>gmul(c,x));
+function pAdd(p,q){ const n=Math.max(p.length,q.length), r=new Array(n).fill(0);
+  for(let i=0;i<p.length;i++) r[i+n-p.length]=p[i]; for(let i=0;i<q.length;i++) r[i+n-q.length]^=q[i]; return r; }
+function pMul(p,q){ const r=new Array(p.length+q.length-1).fill(0);
+  for(let j=0;j<q.length;j++) for(let i=0;i<p.length;i++) r[i+j]^=gmul(p[i],q[j]); return r; }
+function pEval(p,x){ let y=p[0]; for(let i=1;i<p.length;i++) y=gmul(y,x)^p[i]; return y; }
+function pDivRem(a,d){ const o=a.slice(); for(let i=0;i<a.length-(d.length-1);i++){ const c=o[i]; if(c) for(let j=1;j<d.length;j++) if(d[j]) o[i+j]^=gmul(d[j],c); } return o.slice(o.length-(d.length-1)); }
+function rsGen(n){ let g=[1]; for(let i=0;i<n;i++) g=pMul(g,[1,gpow(2,i)]); return g; }
+function rsEncode(msg,n){ const g=rsGen(n), res=msg.concat(new Array(n).fill(0));
+  for(let i=0;i<msg.length;i++){ const c=res[i]; if(c) for(let j=1;j<g.length;j++) res[i+j]^=gmul(g[j],c); }
+  return msg.concat(res.slice(msg.length)); }
+function rsSynd(msg,n){ const s=[0]; for(let i=0;i<n;i++) s.push(pEval(msg,gpow(2,i))); return s; }
+function rsDecode(msgIn,nsym){
+  let msg=msgIn.slice(); let synd=rsSynd(msg,nsym);
+  if(Math.max(...synd)===0) return {data:msg.slice(0,msg.length-nsym), fixed:0};
+  // Berlekamp-Massey
+  let errLoc=[1], oldLoc=[1];
+  for(let i=0;i<nsym;i++){ const K=i+1; let delta=synd[K];
+    for(let j=1;j<errLoc.length;j++) delta^=gmul(errLoc[errLoc.length-1-j],synd[K-j]);
+    oldLoc=oldLoc.concat([0]);
+    if(delta){ if(oldLoc.length>errLoc.length){ const nl=pScale(oldLoc,delta); oldLoc=pScale(errLoc,ginv(delta)); errLoc=nl; }
+      errLoc=pAdd(errLoc,pScale(oldLoc,delta)); } }
+  while(errLoc.length && errLoc[0]===0) errLoc.shift();
+  const errs=errLoc.length-1; if(errs*2>nsym) return null;
+  const rev=errLoc.slice().reverse(), pos=[];
+  for(let i=0;i<msg.length;i++) if(pEval(rev,gpow(2,i))===0) pos.push(msg.length-1-i);
+  if(pos.length!==errs) return null;
+  // Forney
+  const coefPos=pos.map(p=>msg.length-1-p);
+  let eLoc=[1]; coefPos.forEach(i=>{ eLoc=pMul(eLoc,pAdd([1],[gpow(2,i),0])); });
+  const sr=synd.slice().reverse();
+  let ev=pDivRem(pMul(sr,eLoc),[1].concat(new Array(eLoc.length).fill(0))).reverse(); // evaluator (reversed)
+  const X=coefPos.map(c=>gpow(2,-(255-c)));
+  const E=new Array(msg.length).fill(0);
+  for(let i=0;i<X.length;i++){ const Xi=X[i], Xinv=ginv(Xi); let lp=1;
+    for(let j=0;j<X.length;j++) if(j!==i) lp=gmul(lp,1^gmul(Xinv,X[j]));
+    if(lp===0) return null;
+    let y=pEval(ev.slice().reverse(),Xinv); y=gmul(Xi,y);
+    E[pos[i]]=gdiv(y,lp); }
+  msg=pAdd(msg,E);
+  if(Math.max(...rsSynd(msg,nsym))!==0) return null;
+  return {data:msg.slice(0,msg.length-nsym), fixed:errs};
+}
+
+// ================= Formato =================
+const COMPACT = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?'-:;()/&+=#@*\"%$<>_~[]^";
+const SHAPES=[ t=> Math.sin(Math.PI*t), t=> -Math.sin(Math.PI*t), t=> Math.sin(2*Math.PI*t), t=> -Math.sin(2*Math.PI*t) ];
+const PREAMBLE=[0,1,0,1];
+const ECCS=[0.5,0.25,1];
+function dataLenFor(mode,n){ return mode===1 ? Math.ceil((8+6*n)/8) : 1+n; }
+function parsePayload(data){
+  const mode=data[0]>>7, n=data[0]&127;
+  if(data.length!==dataLenFor(mode,n)) return null;
+  if(mode===1){ const bits=[]; data.forEach(b=>{ for(let i=7;i>=0;i--) bits.push((b>>i)&1); });
+    let s=""; for(let k=0;k<n;k++){ let v=0; for(let i=0;i<6;i++) v=(v<<1)|bits[8+k*6+i]; s+=COMPACT[v]; } return s; }
+  try{ return new TextDecoder("utf-8",{fatal:true}).decode(new Uint8Array(data.slice(1))); }catch(e){ return null; }
+}
+function tryBytes(bytes, exhaustive){
+  const avail=bytes.length; let best=null;
+  const attempt=(mode,n)=>{
+    const dl=dataLenFor(mode,n);
+    for(const e of ECCS){ const ns=Math.max(2,Math.round(dl*e)); if(dl+ns>avail) continue;
+      const r=rsDecode(bytes.slice(0,dl+ns),ns); if(!r) continue;
+      if((r.data[0]>>7)!==mode || (r.data[0]&127)!==n) continue;
+      const text=parsePayload(r.data); if(text===null) continue;
+      const cand={text, fixed:r.fixed, nsym:ns, total:dl+ns, ecc:e};
+      if(!best || cand.fixed<best.fixed) best=cand; }
+  };
+  attempt(bytes[0]>>7, bytes[0]&127);
+  if(!best && exhaustive) for(let m=0;m<2;m++) for(let n=1;n<128;n++) attempt(m,n);
+  return best;
+}
+
+// ================= Señal a lo largo del trazo =================
+function resample(pts, step){
+  const out=[pts[0]]; let acc=0;
+  for(let i=1;i<pts.length;i++){ let [x0,y0]=pts[i-1]; const [x1,y1]=pts[i]; let seg=Math.hypot(x1-x0,y1-y0);
+    while(acc+seg>=step){ const t=(step-acc)/seg; x0=x0+(x1-x0)*t; y0=y0+(y1-y0)*t; out.push([x0,y0]); seg=Math.hypot(x1-x0,y1-y0); acc=0; }
+    acc+=seg; }
+  return out;
+}
+// Devuelve d(u): desviación con signo (+ = hacia fuera) en función de la longitud de la curva base
+function offsetSignal(T, W){
+  const n=T.length, h=Math.max(2,Math.round(W/2));
+  // regresión local cuadrática (sin encogimiento en curvas ni sesgo en extremos)
+  const S=[]; for(let k=0;k<5;k++) S.push(new Float64Array(n+1));
+  const SX=[], SY=[]; for(let k=0;k<3;k++){ SX.push(new Float64Array(n+1)); SY.push(new Float64Array(n+1)); }
+  for(let j=0;j<n;j++){ const u=j/n; let p=1; for(let k=0;k<5;k++){ S[k][j+1]=S[k][j]+p; if(k<3){ SX[k][j+1]=SX[k][j]+p*T[j][0]; SY[k][j+1]=SY[k][j]+p*T[j][1]; } p*=u; } }
+  const B=new Array(n), w=2*h+1;
+  for(let i=0;i<n;i++){ let a=i-h, b=i+h; if(a<0){b-=a;a=0;} if(b>n-1){a-=b-(n-1);b=n-1;} if(a<0)a=0;
+    const g=(A,k)=>A[k][b+1]-A[k][a];
+    const m00=g(S,0),m01=g(S,1),m02=g(S,2),m11=g(S,2),m12=g(S,3),m22=g(S,4);
+    const det=m00*(m11*m22-m12*m12)-m01*(m01*m22-m12*m02)+m02*(m01*m12-m11*m02);
+    const u=i/n, sol=(r0,r1,r2)=>{ // Cramer
+      const c0=(r0*(m11*m22-m12*m12)-m01*(r1*m22-m12*r2)+m02*(r1*m12-m11*r2))/det;
+      const c1=(m00*(r1*m22-r2*m12)-r0*(m01*m22-m12*m02)+m02*(m01*r2-r1*m02))/det;
+      const c2=(m00*(m11*r2-m12*r1)-m01*(m01*r2-r1*m02)+r0*(m01*m12-m11*m02))/det;
+      return c0+c1*u+c2*u*u; };
+    B[i]=[sol(g(SX,0),g(SX,1),g(SX,2)), sol(g(SY,0),g(SY,1),g(SY,2))]; }
+  const k=3, tan=new Array(n);
+  for(let i=0;i<n;i++){ const a=B[Math.max(0,i-k)], b=B[Math.min(n-1,i+k)]; let tx=b[0]-a[0], ty=b[1]-a[1]; const L=Math.hypot(tx,ty)||1; tan[i]=[tx/L,ty/L]; }
+  let turn=0; for(let i=0;i+10<n;i+=5) turn+=tan[i][0]*tan[i+10][1]-tan[i][1]*tan[i+10][0];
+  const sg=turn>=0?1:-1;
+  const U=new Float64Array(n), D=new Float64Array(n);
+  for(let i=0;i<n;i++){ if(i>0) U[i]=Math.max(U[i-1], U[i-1]+Math.hypot(B[i][0]-B[i-1][0],B[i][1]-B[i-1][1]));
+    const vx=T[i][0]-B[i][0], vy=T[i][1]-B[i][1]; D[i]=-sg*(tan[i][0]*vy-tan[i][1]*vx); }
+  // remuestreo uniforme en u (paso 0.5)
+  const len=U[n-1], m=Math.floor(len/0.5)+1, d=new Float64Array(m); let j=0;
+  for(let q=0;q<m;q++){ const u=q*0.5; while(j<n-2 && U[j+1]<u) j++;
+    const du=U[j+1]-U[j]; const t=du>1e-9?Math.min(1,Math.max(0,(u-U[j])/du)):0; d[q]=D[j]+(D[j+1]-D[j])*t; }
+  return {d, B, U};
+}
+const at=(d,u)=>{ const x=u/0.5; if(x<=0) return d[0]; if(x>=d.length-1) return d[d.length-1]; const i=Math.floor(x), t=x-i; return d[i]*(1-t)+d[i+1]*t; };
+function scoreWindow(d,s,P){
+  const L=P/1.35, g=P-L; let base=0, nb=0;
+  for(let q=0;q<4;q++){ const f=0.2+0.2*q; base+=at(d,s-g*(1-f))+at(d,s+L+g*f); nb+=2; }
+  base/=nb;
+  const N=16, sc=[0,0,0,0];
+  for(let q=0;q<N;q++){ const t=(q+0.5)/N, v=at(d,s+t*L)-base; for(let k=0;k<4;k++) sc[k]+=v*SHAPES[k](t); }
+  let best=0; for(let k=1;k<4;k++) if(sc[k]>sc[best]) best=k;
+  return {sym:best, score:sc[best], all:sc};
+}
+function preambleNCC(d,phi,P){
+  const L=P/1.35; let st=0, tt=0, ss=0; const end=phi+PREAMBLE.length*P;
+  for(let u=phi; u<end; u+=0.5){ const k=Math.floor((u-phi)/P), w=(u-phi)-k*P; const t=w<L?SHAPES[PREAMBLE[k]](w/L):0; const v=at(d,u); st+=v*t; tt+=t*t; ss+=v*v; }
+  return st/Math.sqrt(tt*ss+1e-9);
+}
+function readSymbols(d,phi,P,maxLen){
+  const syms=[], starts=[]; let s=phi; const lim=Math.min(maxLen, d.length*0.5)-P;
+  while(s<lim){ let best=null, bd=0;
+    const r=Math.max(1,P*0.06);
+    for(let dl=-r; dl<=r; dl+=0.5){ const w=scoreWindow(d,s+dl,P); const sc=w.score-Math.abs(dl)*0.02*Math.abs(w.score); if(!best||sc>best.sc){best={...w,sc};bd=dl;} }
+    if(syms.length<PREAMBLE.length) { bd=0; best=scoreWindow(d,s,P); }
+    syms.push(best.sym); starts.push(s+bd); s=s+bd+P; }
+  return {syms, starts};
+}
+function symsToBytes(syms){ const b=[]; for(let i=0;i+3<syms.length;i+=4) b.push((syms[i]<<6)|(syms[i+1]<<4)|(syms[i+2]<<2)|syms[i+3]); return b; }
+
+// Decodifica una traza ordenada (desde el punto de inicio hacia fuera)
+function decodeTrace(pts){
+  const T=resample(pts,0.5);
+  const total=T.length*0.5;
+  const cands=[];
+  for(let P=5; P<Math.min(250,total/12); P*=1.05){
+    for(const wf of [2.2,3.2]){
+      const sig=offsetSignal(T, (wf*P)/0.5);
+      let bestPhi=0,bestN=-2;
+      for(let phi=0; phi<=P*0.6; phi+=0.5){ const n=preambleNCC(sig.d,phi,P); if(n>bestN){bestN=n;bestPhi=phi;} }
+      cands.push({P,wf,phi:bestPhi,ncc:bestN,sig});
+    }
+  }
+  cands.sort((a,b)=>b.ncc-a.ncc);
+  let tried=0, best=null;
+  const energy=(d,a,b)=>{ let m=0,n=0; for(let u=a;u<b;u+=0.5){m+=at(d,u);n++;} m/=n; let e=0; for(let u=a;u<b;u+=0.5){const v=at(d,u)-m;e+=v*v;} return e/n; };
+  const evalRead=(sigd,phi,P,exh,c)=>{
+      const {syms,starts}=readSymbols(sigd,phi,P,sigd.length*0.5);
+      if(syms.length<PREAMBLE.length+8) return null;
+      const pm=PREAMBLE.reduce((a,v,i)=>a+(syms[i]===v?0:1),0);
+      const bytes=symsToBytes(syms.slice(PREAMBLE.length));
+      const r= pm<=1 ? tryBytes(bytes, exh) : null;
+      if(!r || r.text.length<1 || r.fixed*2>=r.nsym || /[\u0000-\u001f\u007f\ufffd]/.test(r.text)) return {syms,starts,ok:false};
+      const used=PREAMBLE.length+r.total*4;
+      const endU=starts[used-1]+P, dataE=energy(sigd,starts[0],endU);
+      const tailLen=Math.min(2*P, sigd.length*0.5-endU-2);
+      const tailE= tailLen>P*0.8 ? energy(sigd,endU+P*0.2,endU+tailLen) : dataE;
+      const tailOk = tailE < dataE*0.3;
+      return {syms,starts,ok:true,res:{...r, P, q:(tailOk?0:10)+r.fixed/r.nsym, tailOk, symbols:syms.slice(0,used), starts:starts.slice(0,used), sig:{d:sigd}}};
+  };
+  for(const c of cands){ if(tried>=10) break; tried++;
+    for(let dp=-0.04; dp<=0.04001; dp+=0.02){ const P=c.P*(1+dp);
+      let e=evalRead(c.sig.d,c.phi,P,tried<=4,c); if(!e) continue;
+      const consider=r=>{ if(!r) return false; if(!best||r.q<best.q) best=r; return r.tailOk&&r.fixed===0; };
+      if(e.ok && consider(e.res)) return best;
+      // refinado: base que pasa por los huecos
+      let sig=c.sig, st=e.starts, P2=P;
+      for(let it=0; it<2; it++){
+        const rs=refinedSignal(T,sig,P2,st);
+        const {P:bP,phi:bphi}=globalGrid(rs.d,P2);
+        const e2=evalRead(rs.d,bphi,bP,tried<=4); if(!e2) break;
+        if(e2.ok && consider(e2.res)) return best;
+        sig={...rs}; st=e2.starts; P2=bP;
+      }
+    } }
+  return best && (best.tailOk || best.fixed===0) ? best : null;
+}
+
+
+// Base refinada: pasa por el inicio y por el centro de cada hueco (donde la desviación real es 0)
+function catmull(pts, step){
+  const out=[];
+  for(let i=0;i<pts.length-1;i++){ const p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(pts.length-1,i+2)];
+    const n=Math.max(2,Math.ceil(Math.hypot(p2[0]-p1[0],p2[1]-p1[1])/step));
+    for(let k=0;k<n;k++){ const t=k/n, t2=t*t, t3=t2*t;
+      out.push([0,1].map(c=>0.5*((2*p1[c])+(-p0[c]+p2[c])*t+(2*p0[c]-5*p1[c]+4*p2[c]-p3[c])*t2+(-p0[c]+3*p1[c]-3*p2[c]+p3[c])*t3))); } }
+  out.push(pts[pts.length-1]); return out;
+}
+function refinedSignal(T, sig, P, starts){
+  const L=P/1.35, g=P-L, U=sig.U, n=T.length;
+  const idxAt=u=>{ let lo=0,hi=n-1; while(lo<hi){ const m=(lo+hi)>>1; if(U[m]<u) lo=m+1; else hi=m; } return lo; };
+  const anchors=[T[0]];
+  starts.forEach(s=>{ const j=idxAt(s+L+g/2); if(j<n-1) anchors.push(T[j]); });
+  let u=starts[starts.length-1]+P+g/2+P; while(u<U[n-1]-P*0.5){ anchors.push(T[idxAt(u)]); u+=P; }
+  anchors.push(T[n-1]);
+  const Bp=catmull(anchors,0.5), m=Bp.length;
+  const BU=new Float64Array(m); for(let i=1;i<m;i++) BU[i]=BU[i-1]+Math.hypot(Bp[i][0]-Bp[i-1][0],Bp[i][1]-Bp[i-1][1]);
+  let turn=0; for(let i=0;i+20<m;i+=10){ const a=[Bp[i+10][0]-Bp[i][0],Bp[i+10][1]-Bp[i][1]], b=[Bp[i+20][0]-Bp[i+10][0],Bp[i+20][1]-Bp[i+10][1]]; turn+=a[0]*b[1]-a[1]*b[0]; }
+  const sg=turn>=0?1:-1;
+  const DU=new Float64Array(n), DD=new Float64Array(n); let j=0;
+  for(let i=0;i<n;i++){ let bj=j, bd=Infinity; const hi=Math.min(m-1,j+400);
+    for(let k=Math.max(0,j-20);k<=hi;k++){ const dd=(Bp[k][0]-T[i][0])**2+(Bp[k][1]-T[i][1])**2; if(dd<bd){bd=dd;bj=k;} }
+    j=bj; const a=Bp[Math.max(0,bj-2)], b=Bp[Math.min(m-1,bj+2)]; let tx=b[0]-a[0], ty=b[1]-a[1]; const l=Math.hypot(tx,ty)||1; tx/=l; ty/=l;
+    const vx=T[i][0]-Bp[bj][0], vy=T[i][1]-Bp[bj][1];
+    DU[i]= i? Math.max(DU[i-1],BU[bj]) : BU[bj]; DD[i]=-sg*(tx*vy-ty*vx); }
+  const len=DU[n-1], M=Math.floor(len/0.5)+1, d=new Float64Array(M); let q2=0;
+  for(let q=0;q<M;q++){ const uu=q*0.5; while(q2<n-2 && DU[q2+1]<uu) q2++; const du=DU[q2+1]-DU[q2]; const t=du>1e-9?Math.min(1,Math.max(0,(uu-DU[q2])/du)):0; d[q]=DD[q2]+(DD[q2+1]-DD[q2])*t; }
+  return {d, U:DU, B:Bp};
+}
+
+
+// Periodo y fase globales: maximiza la suma de puntuaciones sobre toda la espiral
+function globalGrid(d,P0){
+  const maxU=d.length*0.5; let best={v:-Infinity,P:P0,phi:0};
+  for(let f=0.95; f<=1.0501; f+=0.005){ const P=P0*f;
+    for(let phi=0; phi<=P*0.35; phi+=1){ let v=0;
+      for(let s=phi, k=0; s<maxU-P; s+=P, k++){ const w=scoreWindow(d,s,P); v+= k<PREAMBLE.length ? w.all[PREAMBLE[k]] : w.score; }
+      if(v>best.v) best={v,P,phi}; } }
+  return best;
+}
+
+// ================= SVG =================
+function tracesFromSVG(text){
+  const doc=text; const paths=[...doc.matchAll(/<path[^>]*\sd="([^"]+)"/g)].map(m=>m[1]);
+  const circles=[...doc.matchAll(/<circle[^>]*cx="([-\d.]+)"[^>]*cy="([-\d.]+)"/g)].map(m=>[+m[1],+m[2]]);
+  return paths.map(dstr=>{
+    const nums=dstr.match(/-?\d*\.?\d+(?:e-?\d+)?/gi).map(Number); const pts=[];
+    for(let i=0;i+1<nums.length;i+=2) pts.push([nums[i],nums[i+1]]);
+    if(circles.length){ const dist=p=>Math.min(...circles.map(c=>Math.hypot(c[0]-p[0],c[1]-p[1])));
+      if(dist(pts[pts.length-1])<dist(pts[0])) pts.reverse(); }
+    return pts; }).filter(p=>p.length>50);
+}
+
+// ================= Imagen =================
+// img: {width,height,gray:Uint8Array}
+function tracesFromImage(img){
+  const {width:W,height:H,gray}=img, N=W*H;
+  // umbral adaptativo con imagen integral
+  const I=new Float64Array((W+1)*(H+1));
+  for(let y=0;y<H;y++){ let row=0; for(let x=0;x<W;x++){ row+=gray[y*W+x]; I[(y+1)*(W+1)+x+1]=I[y*(W+1)+x+1]+row; } }
+  const r=Math.max(15,Math.round(Math.max(W,H)/40));
+  let gmin=255,gmax=0; for(let i=0;i<N;i++){ if(gray[i]<gmin)gmin=gray[i]; if(gray[i]>gmax)gmax=gray[i]; }
+  const C=Math.max(8,(gmax-gmin)*0.08);
+  const fg=new Uint8Array(N);
+  for(let y=0;y<H;y++){ const y0=Math.max(0,y-r), y1=Math.min(H,y+r+1);
+    for(let x=0;x<W;x++){ const x0=Math.max(0,x-r), x1=Math.min(W,x+r+1);
+      const s=I[y1*(W+1)+x1]-I[y0*(W+1)+x1]-I[y1*(W+1)+x0]+I[y0*(W+1)+x0]; const mean=s/((x1-x0)*(y1-y0));
+      if(gray[y*W+x]<mean-C) fg[y*W+x]=1; } }
+  // componentes
+  const lab=new Int32Array(N).fill(-1), comps=[]; const st=[];
+  for(let i=0;i<N;i++){ if(!fg[i]||lab[i]>=0) continue; const id=comps.length, px=[]; lab[i]=id; st.push(i);
+    while(st.length){ const p=st.pop(); px.push(p); const x=p%W, y=(p/W)|0;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; const q=ny*W+nx; if(fg[q]&&lab[q]<0){lab[q]=id;st.push(q);} } }
+    comps.push(px); }
+  // unir fragmentos cercanos no hace falta en el prototipo; eliminar ruido
+  const keep=new Uint8Array(N); comps.forEach(px=>{ if(px.length>=40) px.forEach(p=>keep[p]=1); });
+  // transformada de distancia (chamfer)
+  const INF=1e9, dt=new Float64Array(N);
+  for(let i=0;i<N;i++) dt[i]=keep[i]?INF:0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x; if(!dt[i]) continue; let v=dt[i];
+    if(x>0) v=Math.min(v,dt[i-1]+1); if(y>0){ v=Math.min(v,dt[i-W]+1); if(x>0) v=Math.min(v,dt[i-W-1]+1.414); if(x<W-1) v=Math.min(v,dt[i-W+1]+1.414);} else v=Math.min(v,1); if(x===0) v=Math.min(v,1); dt[i]=v; }
+  for(let y=H-1;y>=0;y--) for(let x=W-1;x>=0;x--){ const i=y*W+x; if(!dt[i]) continue; let v=dt[i];
+    if(x<W-1) v=Math.min(v,dt[i+1]+1); if(y<H-1){ v=Math.min(v,dt[i+W]+1); if(x<W-1) v=Math.min(v,dt[i+W+1]+1.414); if(x>0) v=Math.min(v,dt[i+W-1]+1.414);} dt[i]=v; }
+  // adelgazamiento Zhang-Suen
+  const sk=keep.slice(); let changed=true; const del=[];
+  const nb=(x,y)=>{ const g=(a,b)=> (a<0||b<0||a>=W||b>=H)?0:sk[b*W+a]; return [g(x,y-1),g(x+1,y-1),g(x+1,y),g(x+1,y+1),g(x,y+1),g(x-1,y+1),g(x-1,y),g(x-1,y-1)]; };
+  let iter=0;
+  while(changed && iter<100){ changed=false; iter++;
+    for(let pass=0;pass<2;pass++){ del.length=0;
+      for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x; if(!sk[i]) continue;
+        const p=nb(x,y); const B=p.reduce((a,b)=>a+b,0); if(B<2||B>6) continue;
+        let A=0; for(let k=0;k<8;k++) if(!p[k]&&p[(k+1)%8]) A++; if(A!==1) continue;
+        if(pass===0){ if(p[0]*p[2]*p[4]) continue; if(p[2]*p[4]*p[6]) continue; }
+        else { if(p[0]*p[2]*p[6]) continue; if(p[0]*p[4]*p[6]) continue; }
+        del.push(i); }
+      if(del.length){ changed=true; del.forEach(i=>sk[i]=0); } } }
+  // por componente: punto de inicio = píxel más grueso
+  const traces=[];
+  comps.forEach((px)=>{ if(px.length<300) return;
+    let mi=px[0]; px.forEach(p=>{ if(dt[p]>dt[mi]) mi=p; });
+    const skp=px.filter(p=>sk[p]); if(skp.length<100) return;
+    const sw=skp.map(p=>dt[p]).sort((a,b)=>a-b)[Math.floor(skp.length/2)];
+    if(dt[mi]<1.7*sw) return;
+    const cx=mi%W, cy=(mi/W)|0;
+    let start=skp[0], bd=1e18; skp.forEach(p=>{ const d=(p%W-cx)**2+(((p/W)|0)-cy)**2; if(d<bd){bd=d;start=p;} });
+    // BFS en el esqueleto
+    const dist=new Map(), par=new Map(); dist.set(start,0); const q=[start]; let far=start;
+    for(let h=0;h<q.length;h++){ const p=q[h], x=p%W, y=(p/W)|0;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ if(!dx&&!dy) continue; const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; const n=ny*W+nx;
+        if(sk[n]&&!dist.has(n)){ dist.set(n,dist.get(p)+1); par.set(n,p); q.push(n); if(dist.get(n)>dist.get(far)) far=n; } } }
+    const path=[]; let c=far; while(c!==undefined){ path.push([c%W,(c/W)|0]); c=par.get(c); }
+    path.reverse(); path.unshift([cx,cy]);
+    // suavizado ligero
+    const sm=path.map((p,i)=>{ let sx=0,sy=0,n=0; for(let k=-2;k<=2;k++){ const j=Math.min(path.length-1,Math.max(0,i+k)); sx+=path[j][0]; sy+=path[j][1]; n++; } return [sx/n,sy/n]; });
+    traces.push({pts:sm, dot:[cx,cy], dotR:dt[mi]});
+  });
+  return {traces, fg:keep, skel:sk};
+}
+
+
+
+// Detector rápido para el escáner en vivo: sin adelgazamiento, solo busca trazos con un punto grueso
+function detectSpirals(img){
+  const {width:W,height:H,gray}=img, N=W*H;
+  const I=new Float64Array((W+1)*(H+1));
+  for(let y=0;y<H;y++){ let row=0; for(let x=0;x<W;x++){ row+=gray[y*W+x]; I[(y+1)*(W+1)+x+1]=I[y*(W+1)+x+1]+row; } }
+  const r=Math.max(8,Math.round(Math.max(W,H)/40));
+  let gmin=255,gmax=0; for(let i=0;i<N;i++){ if(gray[i]<gmin)gmin=gray[i]; if(gray[i]>gmax)gmax=gray[i]; }
+  const C=Math.max(8,(gmax-gmin)*0.08), fg=new Uint8Array(N);
+  for(let y=0;y<H;y++){ const y0=Math.max(0,y-r), y1=Math.min(H,y+r+1);
+    for(let x=0;x<W;x++){ const x0=Math.max(0,x-r), x1=Math.min(W,x+r+1);
+      const sm=I[y1*(W+1)+x1]-I[y0*(W+1)+x1]-I[y1*(W+1)+x0]+I[y0*(W+1)+x0];
+      if(gray[y*W+x]<sm/((x1-x0)*(y1-y0))-C) fg[y*W+x]=1; } }
+  const dt=new Float64Array(N); for(let i=0;i<N;i++) dt[i]=fg[i]?1e9:0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x; if(!dt[i]) continue; let v=(x===0||y===0)?1:dt[i];
+    if(x>0) v=Math.min(v,dt[i-1]+1); if(y>0){ v=Math.min(v,dt[i-W]+1); if(x>0) v=Math.min(v,dt[i-W-1]+1.414); if(x<W-1) v=Math.min(v,dt[i-W+1]+1.414);} dt[i]=v; }
+  for(let y=H-1;y>=0;y--) for(let x=W-1;x>=0;x--){ const i=y*W+x; if(!dt[i]) continue; let v=dt[i];
+    if(x<W-1) v=Math.min(v,dt[i+1]+1); if(y<H-1){ v=Math.min(v,dt[i+W]+1); if(x<W-1) v=Math.min(v,dt[i+W+1]+1.414); if(x>0) v=Math.min(v,dt[i+W-1]+1.414);} dt[i]=v; }
+  const lab=new Uint8Array(N), out=[], st=[];
+  for(let i=0;i<N;i++){ if(!fg[i]||lab[i]) continue; lab[i]=1; st.push(i);
+    let n=0, mi=i, x0=W,y0=H,x1=0,y1=0; const ds=[];
+    while(st.length){ const p=st.pop(); n++; const x=p%W, y=(p/W)|0; ds.push(dt[p]); if(dt[p]>dt[mi]) mi=p;
+      if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; const q=ny*W+nx; if(fg[q]&&!lab[q]){lab[q]=1;st.push(q);} } }
+    if(n<120 || Math.max(x1-x0,y1-y0)<Math.max(W,H)*0.07) continue;
+    ds.sort((a,b)=>a-b); const med=ds[ds.length>>1];
+    if(dt[mi]<2 || dt[mi]<1.8*med) continue;
+    if(n>0.35*(x1-x0+1)*(y1-y0+1)) continue; // manchas sólidas, no trazos
+    out.push({dot:[mi%W,(mi/W)|0], box:[x0,y0,x1,y1]}); }
+  return out;
+}
+return {decodeTrace,tracesFromSVG,tracesFromImage,detectSpirals};
+}
+const Dec=decFactory();
+
+// ---------- Pestañas ----------
+function showTab(which){ const c=which==="C";
+  $("tabC").setAttribute("aria-selected",c); $("tabL").setAttribute("aria-selected",!c);
+  $("pC").hidden=!c; $("pL").hidden=c; }
+$("tabC").addEventListener("click",()=>showTab("C"));
+$("tabL").addEventListener("click",()=>showTab("L"));
+
+// ---------- Lector ----------
+const tick=()=>new Promise(r=>setTimeout(r,30));
+function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function showResults(list){
+  if(!list.length){ $("results").innerHTML='<div class="res fail"><div class="txt">No se ha encontrado ninguna espiral</div><div class="meta">Busco trazos con un punto grueso en un extremo. Comprueba que la espiral se ve entera y con contraste, y que el punto de inicio no está tapado.</div></div>'; return; }
+  $("results").innerHTML=list.map((r,i)=>{
+    const n=list.length>1?`Espiral ${i+1}: `:"";
+    if(!r) return `<div class="res fail"><div class="txt">${n}no se ha podido leer</div><div class="meta">Hay demasiadas ondas dudosas. Prueba otra foto más de frente, más cerca o con más luz.</div></div>`;
+    const fx=r.fixed===0?"Lectura limpia, sin correcciones":`Se han corregido ${r.fixed} ${r.fixed===1?"byte":"bytes"} de ${Math.floor(r.nsym/2)} posibles`;
+    return `<div class="res"><div class="meta">${n}mensaje</div><div class="txt">${esc(r.text)}</div><div class="meta">${fx}</div></div>`; }).join("");
+}
+async function runTraces(traces, draw){
+  $("results").innerHTML='<p class="busy">Leyendo… puede tardar unos segundos.</p>'; await tick();
+  const out=[];
+  for(let i=0;i<traces.length;i++){ $("results").innerHTML=`<p class="busy">Leyendo espiral ${i+1} de ${traces.length}…</p>`; await tick();
+    let r=null; try{ r=Dec.decodeTrace(traces[i]); }catch(e){ console.error(e); }
+    out.push(r); if(draw) draw(i,r); }
+  showResults(out);
+}
+$("readSvg").addEventListener("click",()=>{
+  const t=$("svgIn").value.trim();
+  if(!t.includes("<path")){ $("results").innerHTML='<div class="res fail"><div class="txt">Ese texto no contiene una plantilla</div><div class="meta">Pega el código completo que empieza por &lt;svg y termina en &lt;/svg&gt;.</div></div>'; return; }
+  const tr=Dec.tracesFromSVG(t);
+  $("view").hidden=false; $("view").innerHTML=t.replace(/<script[\s\S]*?<\/script>/gi,"");
+  runTraces(tr);
+});
+$("photo").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  $("results").innerHTML='<p class="busy">Cargando la foto…</p>';
+  let bmp; try{ bmp=await createImageBitmap(f); }catch(err){ $("results").innerHTML='<div class="res fail"><div class="txt">No se ha podido abrir la imagen</div><div class="meta">Usa una foto en JPG o PNG.</div></div>'; return; }
+  const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height)), W=Math.round(bmp.width*sc), H=Math.round(bmp.height*sc);
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=H; const cx=cv.getContext("2d");
+  cx.drawImage(bmp,0,0,W,H); const id=cx.getImageData(0,0,W,H).data; const gray=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++) gray[i]=(id[i*4]*0.3+id[i*4+1]*0.59+id[i*4+2]*0.11)|0;
+  $("view").hidden=false; $("view").innerHTML=""; $("view").appendChild(cv);
+  $("results").innerHTML='<p class="busy">Buscando espirales…</p>'; await tick();
+  const {traces}=Dec.tracesFromImage({width:W,height:H,gray});
+  if(!traces.length){ showResults([]); return; }
+  const lw=Math.max(2,Math.round(Math.max(W,H)/400));
+  traces.forEach(t=>{ cx.strokeStyle="rgba(74,42,140,.55)"; cx.lineWidth=lw; cx.beginPath(); t.pts.forEach((p,i)=>i?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1])); cx.stroke(); });
+  await runTraces(traces.map(t=>t.pts),(i,r)=>{ const t=traces[i];
+    cx.strokeStyle=r?"#0F766E":"#B45309"; cx.lineWidth=lw*1.5; cx.beginPath(); t.pts.forEach((p,k)=>k?cx.lineTo(p[0],p[1]):cx.moveTo(p[0],p[1])); cx.stroke();
+    cx.fillStyle=r?"#0F766E":"#B45309"; cx.beginPath(); cx.arc(t.dot[0],t.dot[1],Math.max(t.dotR*1.6,lw*3),0,7); cx.fill();
+    cx.font=`800 ${lw*12}px "Bricolage Grotesque",system-ui,sans-serif`; cx.fillText(String(i+1),t.dot[0]+lw*6,t.dot[1]-lw*6); });
+  e.target.value="";
+});
+
+// ---------- Escáner en vivo ----------
+const SC={on:false, stream:null, video:null, tracks:[], busy:false, worker:null, reqId:0, lastDetect:0, raf:0};
+function makeWorker(){
+  try{
+    const src="const Dec=("+decFactory.toString()+")();\n"+
+      "onmessage=e=>{ const {id,width,height,buf}=e.data; const gray=new Uint8Array(buf); let out=[];"+
+      " try{ const {traces}=Dec.tracesFromImage({width,height,gray}); out=traces.map(t=>{ const r=Dec.decodeTrace(t.pts); return {dot:t.dot, text:r?r.text:null}; }); }catch(err){}"+
+      " postMessage({id,width,height,out}); };";
+    const w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));
+    return w;
+  }catch(e){ return null; }
+}
+function grabGray(maxSide){
+  const v=SC.video, sc=Math.min(1,maxSide/Math.max(v.videoWidth,v.videoHeight));
+  const W=Math.round(v.videoWidth*sc), H=Math.round(v.videoHeight*sc);
+  const c=grabGray.c||(grabGray.c=document.createElement("canvas")); c.width=W; c.height=H;
+  const x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(v,0,0,W,H);
+  const d=x.getImageData(0,0,W,H).data, g=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++) g[i]=(d[i*4]*0.3+d[i*4+1]*0.59+d[i*4+2]*0.11)|0;
+  return {width:W,height:H,gray:g};
+}
+function onDecoded(res){
+  SC.busy=false;
+  res.out.forEach(o=>{ const nx=o.dot[0]/res.width, ny=o.dot[1]/res.height;
+    let best=null, bd=0.12; SC.tracks.forEach(t=>{ const d=Math.hypot(t.x-nx,t.y-ny); if(d<bd){bd=d;best=t;} });
+    if(!best) return;
+    if(o.text){ if(best.text!==o.text){ best.text=o.text; best.born=performance.now(); } }
+    else best.fails++; });
+}
+function requestDecode(){
+  if(SC.busy) return; SC.busy=true; const img=grabGray(1600), id=++SC.reqId;
+  if(SC.worker){ SC.worker.postMessage({id,width:img.width,height:img.height,buf:img.gray.buffer},[img.gray.buffer]); }
+  else setTimeout(()=>{ let out=[]; try{ const {traces}=Dec.tracesFromImage(img); out=traces.map(t=>{ const r=Dec.decodeTrace(t.pts); return {dot:t.dot,text:r?r.text:null}; }); }catch(e){}
+    onDecoded({id,width:img.width,height:img.height,out}); },60);
+}
+function detectStep(now){
+  const img=grabGray(640), dets=Dec.detectSpirals(img);
+  const seen=new Set();
+  dets.forEach(d=>{ const nx=d.dot[0]/img.width, ny=d.dot[1]/img.height, b=d.box.map((v,i)=>v/(i%2?img.height:img.width));
+    let best=null, bd=0.1; SC.tracks.forEach(t=>{ if(seen.has(t)) return; const dd=Math.hypot(t.x-nx,t.y-ny); if(dd<bd){bd=dd;best=t;} });
+    if(!best){ best={x:nx,y:ny,box:b,sx:nx,sy:ny,sbox:b.slice(),text:null,born:0,fails:0,steady:0,last:now}; SC.tracks.push(best); }
+    best.steady = Math.hypot(best.x-nx,best.y-ny)<0.012 ? best.steady+1 : 0;
+    best.x=nx; best.y=ny; best.box=b; best.last=now; seen.add(best); });
+  SC.tracks=SC.tracks.filter(t=>now-t.last<(t.text?1500:600));
+  if(SC.tracks.some(t=>!t.text && t.steady>=2)) requestDecode();
+}
+function coverMap(cw,ch){ const v=SC.video, s=Math.max(cw/v.videoWidth,ch/v.videoHeight);
+  return {s, ox:(cw-v.videoWidth*s)/2, oy:(ch-v.videoHeight*s)/2, vw:v.videoWidth, vh:v.videoHeight}; }
+function frame(now){
+  if(!SC.on) return; SC.raf=requestAnimationFrame(frame);
+  const cv=$("scanCv"), dpr=Math.min(2,window.devicePixelRatio||1), cw=cv.clientWidth*dpr, ch=cv.clientHeight*dpr;
+  if(cv.width!==cw||cv.height!==ch){ cv.width=cw; cv.height=ch; }
+  const x=cv.getContext("2d"), v=SC.video; if(!v.videoWidth) return;
+  const m=coverMap(cw,ch); x.drawImage(v,m.ox,m.oy,v.videoWidth*m.s,v.videoHeight*m.s);
+  if(now-SC.lastDetect>200){ SC.lastDetect=now; try{ detectStep(now); }catch(e){} }
+  const P=(nx,ny)=>[m.ox+nx*m.vw*m.s, m.oy+ny*m.vh*m.s];
+  let msg="Apunta a una espiral";
+  SC.tracks.forEach(t=>{
+    const k=0.25; t.sx+=(t.x-t.sx)*k; t.sy+=(t.y-t.sy)*k; for(let i=0;i<4;i++) t.sbox[i]+=(t.box[i]-t.sbox[i])*k;
+    const [bx0,by0]=P(t.sbox[0],t.sbox[1]), [bx1,by1]=P(t.sbox[2],t.sbox[3]), [dx,dy]=P(t.sx,t.sy);
+    const cx=(bx0+bx1)/2, cy=(by0+by1)/2, rad=Math.max(bx1-bx0,by1-by0)/2+10*dpr;
+    if(!t.text){
+      msg= t.fails>=3 ? "Acércate un poco y busca más luz" : "Leyendo la espiral…";
+      x.save(); x.strokeStyle="rgba(255,255,255,.85)"; x.lineWidth=3*dpr; x.lineCap="round";
+      const a=now/450; x.beginPath(); x.arc(cx,cy,rad,a,a+1.3); x.stroke(); x.beginPath(); x.arc(cx,cy,rad,a+Math.PI,a+Math.PI+1.3); x.stroke(); x.restore();
+      return; }
+    msg="Mensaje encontrado";
+    // texto que se escribe en el aire, encima de la espiral
+    const age=now-t.born, n=Math.min(t.text.length, Math.floor(age/55)), shown=t.text.slice(0,n);
+    const fs=Math.max(18*dpr, Math.min(64*dpr, (bx1-bx0)/Math.max(6,t.text.length)*1.9));
+    const lift=Math.min(1,age/600), ty=by0-fs*0.9-24*dpr*lift - Math.sin(now/700)*4*dpr;
+    x.save(); x.globalAlpha=Math.min(1,age/250);
+    x.strokeStyle="rgba(255,255,255,.55)"; x.lineWidth=1.5*dpr; x.setLineDash([4*dpr,5*dpr]);
+    x.beginPath(); x.moveTo(dx,dy); x.lineTo(cx,ty+fs*0.35); x.stroke(); x.setLineDash([]);
+    x.fillStyle="#fff"; x.beginPath(); x.arc(dx,dy,4*dpr,0,7); x.fill();
+    x.font=`800 ${fs}px "Bricolage Grotesque",system-ui,sans-serif`; x.textAlign="center"; x.textBaseline="alphabetic";
+    const full=x.measureText(t.text).width; let px=cx-full/2; x.textAlign="left";
+    for(let i=0;i<shown.length;i++){ const ch=shown[i], w=x.measureText(ch).width, ca=Math.min(1,(age-i*55)/220);
+      const oy=Math.sin(now/600+i*0.5)*2.5*dpr - (1-ca)*14*dpr;
+      x.globalAlpha=ca; x.shadowColor="rgba(160,120,255,.95)"; x.shadowBlur=18*dpr; x.fillStyle="#fff"; x.fillText(ch,px,ty+oy); px+=w; }
+    if(n<t.text.length && Math.floor(now/300)%2){ x.globalAlpha=1; x.shadowBlur=0; x.fillRect(px+2*dpr,ty-fs*0.8,3*dpr,fs*0.9); }
+    x.restore(); });
+  const el=$("scanMsg"); if(el.textContent!==msg) el.textContent=msg;
+}
+async function openScanner(){
+  $("scanner").hidden=false; $("scanMsg").textContent="Abriendo la cámara…";
+  try{
+    SC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  }catch(e){ $("scanMsg").textContent="No hay acceso a la cámara. Permite el acceso en el navegador o abre este enlace directamente en el navegador del móvil."; return; }
+  const v=SC.video||(SC.video=document.createElement("video")); v.playsInline=true; v.muted=true; v.srcObject=SC.stream; await v.play();
+  if(!SC.worker){ SC.worker=makeWorker(); if(SC.worker){ SC.worker.onmessage=e=>onDecoded(e.data); SC.worker.onerror=()=>{ SC.worker=null; SC.busy=false; }; } }
+  SC.tracks=[]; SC.busy=false; SC.on=true; SC.raf=requestAnimationFrame(frame);
+}
+function closeScanner(){ SC.on=false; cancelAnimationFrame(SC.raf); if(SC.stream) SC.stream.getTracks().forEach(t=>t.stop()); SC.stream=null; $("scanner").hidden=true; }
+$("scanBtn").addEventListener("click",openScanner);
+$("scanClose").addEventListener("click",closeScanner);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && SC.on) closeScanner(); });
+</script>
+</body>
+</html>
