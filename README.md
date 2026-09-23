@@ -51,7 +51,7 @@ Esta es la especificación que tendría que seguir cualquier otra implementació
 5. **Clasificación:** correlación de cada tramo con las 4 formas, con la línea base tomada de los huecos adyacentes.
 6. **Validación:** Reed-Solomon, cabecera coherente, texto sin caracteres de control y cola lisa tras los datos.
 
-El escáner en vivo usa un detector ligero a 640 px (sin adelgazamiento) para seguir las espirales, y lanza la decodificación completa en un Web Worker cuando la imagen está estable.
+El escáner en vivo usa un detector ligero a 640 px (sin adelgazamiento) para seguir las espirales. Para cada una sin leer recorta la región del fotograma a resolución nativa y lanza la decodificación completa en un Web Worker, sin esperar a que la imagen esté quieta. Los reintentos alternan la escala y el resultado se asocia a la pista por id, así que aunque la espiral se mueva durante la lectura el texto no se pierde.
 
 ## Pruebas
 
